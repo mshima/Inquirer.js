@@ -1,0 +1,62 @@
+name: Build
+
+on: [push, pull_request]
+
+jobs:
+  tests:
+    strategy:
+      matrix:
+        os: [macos-latest, windows-latest, ubuntu-latest]
+        node: ['10', '12']
+    runs-on: ${{ matrix.os }}
+    name: Inquirer (${{ matrix.os }}|node-${{ matrix.node }})
+
+    steps:
+      - uses: actions/checkout@v1
+      - uses: actions/setup-node@v1.2.0
+        with:
+          node-version: ${{ matrix.node }}
+      - name: Node Version
+        run: node --version
+      - name: Yarn version
+        run: yarn --version
+      - name: Install lerna
+        run: yarn global add lerna
+      - name: Yarn bootstrap
+        run: yarn bootstrap
+      - name: Yarn test
+        run: yarn test
+      - name: Yarn codecov
+        run: yarn codecov
+
+  windows-test:
+    strategy:
+      matrix:
+        os: [windows-latest]
+        node: ['10', '12']
+    runs-on: ${{ matrix.os }}
+    name: Inquirer CMD (${{ matrix.os }}|node-${{ matrix.node }})
+
+    steps:
+      - uses: actions/checkout@v1
+      - uses: actions/setup-node@v1.2.0
+        with:
+          node-version: ${{ matrix.node }}
+      - name: Node Version
+        run: node --version
+        shell: cmd
+      - name: Yarn version
+        run: yarn --version
+        shell: cmd
+      - name: Install lerna
+        run: yarn global add lerna
+      - name: Yarn bootstrap
+        run: yarn bootstrap
+        shell: cmd
+      - name: Yarn test
+        run: yarn test
+        shell: cmd
+      - name: Yarn codecov
+        run: yarn codecov
+        shell: cmd
+

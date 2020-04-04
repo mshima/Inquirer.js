@@ -12,7 +12,7 @@ var Choices = require('../objects/choices');
 var ScreenManager = require('../utils/screen-manager');
 
 class Prompt {
-  constructor(question, rl, answers) {
+  constructor(question, options, answers) {
     // Setup instance defaults property
     _.assign(this, {
       answers: answers,
@@ -43,8 +43,13 @@ class Prompt {
       this.opt.choices = new Choices(this.opt.choices, answers);
     }
 
-    this.rl = rl;
-    this.screen = new ScreenManager(this.rl);
+    if (options) {
+      this.rl = options.rl || options;
+
+      if (!options.disableScreen) {
+        this.screen = new ScreenManager(this.rl);
+      }
+    }
   }
 
   /**
@@ -77,7 +82,9 @@ class Prompt {
    * Called when the UI closes. Override to do any specific cleanup necessary
    */
   close() {
-    this.screen.releaseCursor();
+    if (this.screen) {
+      this.screen.releaseCursor();
+    }
   }
 
   /**

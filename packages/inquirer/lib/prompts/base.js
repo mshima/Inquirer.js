@@ -88,23 +88,40 @@ class Prompt {
   }
 
   /**
+   * Run the provided filtering and validation method for a given value.
+   * @param  {Object} answer - Answer to be validated.
+   * @return {Promise} Resolved with the answers or reject with error.
+   */
+  handleAnswer(answer) {
+    var self = this;
+    var validate = runAsync(this.opt.validate);
+    var asyncFilter = runAsync(this.opt.filter);
+    return asyncFilter(answer, self.answers).then(filteredValue =>
+      validate(filteredValue, self.answers).then(validateResult => {
+        if (validateResult === true) {
+          return Promise.resolve(filteredValue);
+        }
+        const error = new Error(validateResult);
+        error.value = filteredValue;
+        return Promise.reject(error);
+      })
+    );
+  }
+
+  /**
    * Run the provided validation method each time a submit event occur.
    * @param  {Rx.Observable} submit - submit event flow
    * @return {Object}        Object containing two observables: `success` and `error`
    */
   handleSubmitEvents(submit) {
     var self = this;
-    var validate = runAsync(this.opt.validate);
-    var asyncFilter = runAsync(this.opt.filter);
     var validation = submit.pipe(
       flatMap(value =>
-        asyncFilter(value, self.answers).then(
-          filteredValue =>
-            validate(filteredValue, self.answers).then(
-              isValid => ({ isValid: isValid, value: filteredValue }),
-              err => ({ isValid: err, value: filteredValue })
-            ),
-          err => ({ isValid: err })
+        self.handleAnswer(value).then(
+          filteredValue => {
+            return { isValid: true, value: filteredValue };
+          },
+          err => ({ isValid: err.message, value: err.value })
         )
       ),
       share()

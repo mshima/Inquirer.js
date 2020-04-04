@@ -53,8 +53,8 @@ class Prompt {
    */
 
   run() {
-    return new Promise(resolve => {
-      this._run(value => resolve(value));
+    return new Promise((resolve, reject) => {
+      this._run(resolve, reject);
     });
   }
 

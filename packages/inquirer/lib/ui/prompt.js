@@ -49,7 +49,7 @@ class PromptUI extends Base {
         }, this.answers)
       )
       .toPromise(Promise)
-      .then(this.onCompletion.bind(this));
+      .then(this.onCompletion.bind(this), this.onError.bind(this));
   }
 
   /**
@@ -60,6 +60,11 @@ class PromptUI extends Base {
     this.close();
 
     return this.answers;
+  }
+
+  onError(error) {
+    this.close();
+    return Promise.reject(error);
   }
 
   processQuestion(question) {

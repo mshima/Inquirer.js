@@ -8,7 +8,12 @@ var readline = require('readline');
  */
 
 class UI {
-  constructor(opt) {
+  constructor(opt = {}) {
+    this.options = opt;
+    if (this.options.headless) {
+      return;
+    }
+
     // Instantiate the Readline interface
     // @Note: Don't reassign if already present (allow test to override the Stream)
     if (!this.rl) {
@@ -42,6 +47,10 @@ class UI {
    */
 
   close() {
+    if (this.options.headless) {
+      return;
+    }
+
     // Remove events listeners
     this.rl.removeListener('SIGINT', this.onForceClose);
     process.removeListener('exit', this.onForceClose);

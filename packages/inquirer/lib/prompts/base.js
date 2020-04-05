@@ -58,9 +58,22 @@ class Prompt {
    */
 
   run() {
+    if (this.options.headless) {
+      const answer = this.answers[this.opt.name];
+      if (answer === undefined) {
+        answer = this.parseDefault();
+      }
+      return handleAnswer(answer);
+    }
+
     return new Promise((resolve, reject) => {
       this._run(resolve, reject);
     });
+  }
+
+  // Default default value calculation (should be overwritten in prompts)
+  parseDefault() {
+    return this.opt.default;
   }
 
   // Default noop (this one should be overwritten in prompts)

@@ -91,7 +91,7 @@ class PromptUI extends Base {
 
   fetchAnswer(question) {
     var Prompt = this.prompts[question.type];
-    this.activePrompt = new Prompt(question, this.rl, this.answers);
+    this.activePrompt = new Prompt(question, { rl: this.rl, headless: this.options.headless }, this.answers);
     return defer(() =>
       from(
         this.activePrompt.run().then(answer => ({ name: question.name, answer: answer }))
@@ -109,7 +109,7 @@ class PromptUI extends Base {
   }
 
   filterIfRunnable(question) {
-    if (question.askAnswered !== true && this.answers[question.name] !== undefined) {
+    if (!this.options.headless && question.askAnswered !== true && this.answers[question.name] !== undefined) {
       return empty();
     }
 

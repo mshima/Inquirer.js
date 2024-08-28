@@ -362,11 +362,11 @@ export default class PromptsRunner<A extends Answers> {
                   reject(new AbortPromptError({ cause: signal.reason }));
                   cleanup();
                 }
-                if (signal.aborted) (
+                if (signal.aborted) {
                   abort()
                   return;
                 }
-                signal?.addEventListener('abort', () => abort());
+                signal.addEventListener('abort', () => abort());
               }
               activePrompt
                 .run()

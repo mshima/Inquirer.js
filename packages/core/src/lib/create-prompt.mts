@@ -6,7 +6,7 @@ import { onExit as onSignalExit } from 'signal-exit';
 import ScreenManager from './screen-manager.mjs';
 import type { InquirerReadline } from '@inquirer/type';
 import { withHooks, effectScheduler } from './hook-engine.mjs';
-import { CancelPromptError, ExitPromptError } from './errors.mjs';
+import { AbortPromptError, CancelPromptError, ExitPromptError } from './errors.mjs';
 
 type ViewFunction<Value, Config> = (
   config: Prettify<Config>,
@@ -16,7 +16,7 @@ type ViewFunction<Value, Config> = (
 export function createPrompt<Value, Config>(view: ViewFunction<Value, Config>) {
   const prompt: Prompt<Value, Config> = (config, context) => {
     // Default `input` to stdin
-    const input = context?.input ?? process.stdin;
+    const { input = process.stdin, signal } = context ?? {};
 
     // Add mute capabilities to the output
     const output = new MuteStream();
@@ -31,14 +31,32 @@ export function createPrompt<Value, Config>(view: ViewFunction<Value, Config>) {
 
     let cancel: () => void = () => {};
     const answer = new CancelablePromise<Value>((resolve, reject) => {
+      if (signal?.aborted) {
+        reject(new AbortPromptError({ cause: signal.reason }));
+        return;
+      }
+
       withHooks(rl, (cycle) => {
         function checkCursorPos() {
           screen.checkCursorPos();
         }
 
-        const removeExitListener = onSignalExit((code, signal) => {
+        const fail = (error: unknown) => {
           onExit();
-          reject(
+          reject(error);
+        };
+
+        let cleanupSignal = () => {};
+        if (signal) {
+          const abort = () => fail(new AbortPromptError({ cause: signal.reason }));
+          signal.addEventListener('abort', abort);
+          cleanupSignal = () => {
+            signal.removeEventListener?.('abort', abort);
+          };
+        }
+
+        const removeExitListener = onSignalExit((code, signal) => {
+          fail(
             new ExitPromptError(`User force closed the prompt with ${code} ${signal}`),
           );
         });
@@ -60,11 +78,12 @@ export function createPrompt<Value, Config>(view: ViewFunction<Value, Config>) {
           rl.input.removeListener('keypress', checkCursorPos);
           rl.removeListener('close', hooksCleanup);
           output.end();
+
+          cleanupSignal();
         }
 
         cancel = () => {
-          onExit();
-          reject(new CancelPromptError());
+          fail(new CancelPromptError());
         };
 
         function done(value: Value) {
@@ -86,9 +105,8 @@ export function createPrompt<Value, Config>(view: ViewFunction<Value, Config>) {
             screen.render(content, bottomContent);
 
             effectScheduler.run();
-          } catch (error) {
-            onExit();
-            reject(error);
+          } catch (error: unknown) {
+            fail(error);
           }
         });
 

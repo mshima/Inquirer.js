@@ -357,10 +357,17 @@ export default class PromptsRunner<A extends Answers> {
                 this.onClose = undefined;
                 this.rl = undefined;
               };
-              signal?.addEventListener('abort', () => {
-                reject(new AbortPromptError({ cause: signal.reason }));
-                cleanup();
-              });
+              if (signal) {
+                const abort = () => {
+                  reject(new AbortPromptError({ cause: signal.reason }));
+                  cleanup();
+                }
+                if (signal.aborted) (
+                  abort()
+                  return;
+                }
+                signal?.addEventListener('abort', () => abort());
+              }
               activePrompt
                 .run()
                 .then((answer: unknown) => {
